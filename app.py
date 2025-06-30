@@ -24,34 +24,31 @@ def index():
     if request.method == 'POST':
         archivo = request.files['imagen']
         if archivo and archivo.filename != '':
-            # Guardar archivo con nombre seguro
             filename = secure_filename(archivo.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             archivo.save(filepath)
 
-            # Generar URL para mostrar la imagen
             imagen_url = url_for('static', filename=f'uploads/{filename}')
 
             try:
-                # Procesar imagen
                 imagen = cv2.imread(filepath)
                 if imagen is not None:
                     imagen_redim = cv2.resize(imagen, (128, 128))
                     imagen_norm = imagen_redim / 255.0
                     imagen_input = np.expand_dims(imagen_norm, axis=0)
 
-                    # Predicción
                     prediccion = modelo.predict(imagen_input)[0]
                     indice_predicho = np.argmax(prediccion)
                     confianza = prediccion[indice_predicho] * 100
                     resultado = f"{clases[indice_predicho]} ({confianza:.1f}%)"
                 else:
                     resultado = "❌ Error al procesar la imagen"
-            
             except Exception as e:
                 resultado = f"❌ Error: {str(e)}"
 
     return render_template("index.html", resultado=resultado, imagen=imagen_url)
 
+# ✅ Solo una forma de ejecutar para Railway y local
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)
